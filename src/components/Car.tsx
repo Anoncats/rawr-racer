@@ -24,6 +24,11 @@ const Car = forwardRef<RapierRigidBody, CarProps>(function Car({ onReady, onMove
   const microphoneRef = useRef<MediaStreamAudioSourceNode | null>(null)
   const dataArrayRef = useRef<Uint8Array<ArrayBuffer> | null>(null)
   const volumeLevelRef = useRef(0)
+  const baselineRef = useRef(0)
+  const calibratingRef = useRef(true)
+  const calibrationStartRef = useRef(0)
+  const calibrationDuration = 2000 // ms  const smoothing = 0.9  // closer to 1 → slower baseline drift
+  const smoothing = 0.9 // Closer to 1 → slower baseline drift
 
   // Initialize microphone access
   useEffect(() => {
@@ -42,23 +47,41 @@ const Car = forwardRef<RapierRigidBody, CarProps>(function Car({ onReady, onMove
         microphoneRef.current.connect(analyserRef.current)
         
         dataArrayRef.current = new Uint8Array(analyserRef.current.frequencyBinCount) as Uint8Array<ArrayBuffer>
+
+        calibrationStartRef.current = performance.now()
         
         // Start analyzing audio
         const analyzeAudio = () => {
           if (!analyserRef.current || !dataArrayRef.current) return
-          
+
           analyserRef.current.getByteFrequencyData(dataArrayRef.current)
-          
-          // Calculate average volume from frequency data
           let sum = 0
           for (let i = 0; i < dataArrayRef.current.length; i++) {
             sum += dataArrayRef.current[i]
           }
-          const average = sum / dataArrayRef.current.length
-          
-          // Normalize to 0-1 range and apply sensitivity
-          volumeLevelRef.current = Math.min(average / 128, 1)
-          
+          const avg = sum / dataArrayRef.current.length
+
+          const now = performance.now()
+          if (calibratingRef.current) {
+            // only during first 2s
+            baselineRef.current =
+              baselineRef.current * smoothing +
+              avg * (1 - smoothing)
+
+            if (now - calibrationStartRef.current >= calibrationDuration) {
+              calibratingRef.current = false
+            }
+          }
+
+          // subtract fixed baseline
+          const net = avg - baselineRef.current
+
+          // use gamma curve
+          const maxNet = 128 - baselineRef.current
+          const norm = Math.max(0, Math.min(net / maxNet, 1))
+          const tapered = Math.pow(norm, 0.5)  // try exponent 0.5–0.8
+          volumeLevelRef.current = tapered * 0.5
+
           requestAnimationFrame(analyzeAudio)
         }
         
@@ -143,33 +166,30 @@ const Car = forwardRef<RapierRigidBody, CarProps>(function Car({ onReady, onMove
     forwardVector.applyQuaternion(quaternion)
     
     // Movement controls with car-relative directions and voice-controlled strength
-    const baseImpulseStrength = 0.02
-    const voiceMultiplier = 1 + (volumeLevelRef.current * 2) // Voice can double the impulse strength
-    const impulseStrength = baseImpulseStrength * voiceMultiplier
-    console.log(`impulseStrength: ${impulseStrength.toFixed(3)}, volume: ${volumeLevelRef.current.toFixed(2)}`)
     
+    console.log(`volume: ${volumeLevelRef.current.toFixed(2)}`)
     if (keys.current.ArrowUp) {
-      ref.current.applyImpulse({ 
-        x: -forwardVector.x * impulseStrength * 1.4,
-        y: 0, 
-        z: -forwardVector.z * impulseStrength * 1.4
+      ref.current.applyImpulse({
+        x: -forwardVector.x * volumeLevelRef.current * 0.6,
+        y: 0,
+        z: -forwardVector.z * volumeLevelRef.current * 0.6
       }, true)
     }
     if (keys.current.ArrowDown) {
-      ref.current.applyImpulse({ 
-        x: forwardVector.x * impulseStrength * 1.4,
-        y: 0, 
-        z: forwardVector.z * impulseStrength * 1.4
+      ref.current.applyImpulse({
+        x: forwardVector.x * volumeLevelRef.current * 0.6,
+        y: 0,
+        z: forwardVector.z * volumeLevelRef.current * 0.6
       }, true)
     }
     if (keys.current.ArrowLeft)  ref.current.applyTorqueImpulse({
       x: 0,
-      y: impulseStrength - 0.01,
+      y: volumeLevelRef.current * 0.08,
       z: 0
     }, true)
     if (keys.current.ArrowRight) ref.current.applyTorqueImpulse({
       x: 0,
-      y: -impulseStrength + 0.01,
+      y: -volumeLevelRef.current * 0.08,
       z: 0 },
     true)
   })
