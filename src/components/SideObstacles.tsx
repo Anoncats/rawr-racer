@@ -22,7 +22,6 @@ export default function SideObstacles() {
     { id: 0, position: new Vector3(), direction: 1, speed: 0.01, trackPosition: 0.2, sidePosition: 0 },
     { id: 1, position: new Vector3(), direction: -1, speed: 0.012, trackPosition: 0.4, sidePosition: 0 },
     { id: 2, position: new Vector3(), direction: 1, speed: 0.01, trackPosition: 0.6, sidePosition: 1 },
-    { id: 3, position: new Vector3(), direction: -1, speed: 0.012, trackPosition: 0.8, sidePosition: 0 },
   ], [])
   
   // Calculate track path (same as in Track component)

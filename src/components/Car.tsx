@@ -166,32 +166,34 @@ const Car = forwardRef<RapierRigidBody, CarProps>(function Car({ onReady, onMove
     forwardVector.applyQuaternion(quaternion)
     
     // Movement controls with car-relative directions and voice-controlled strength
-    
-    console.log(`volume: ${volumeLevelRef.current.toFixed(2)}`)
+    const volumeImpulse = volumeLevelRef.current + 0.01
+    const volumeTorque = volumeLevelRef.current + 0.005
+
+    console.log(`volume: ${volumeLevelRef.current}`)
     if (keys.current.ArrowUp) {
       ref.current.applyImpulse({
-        x: -forwardVector.x * volumeLevelRef.current * 0.6,
+        x: -forwardVector.x * volumeImpulse * 0.6,
         y: 0,
-        z: -forwardVector.z * volumeLevelRef.current * 0.6
+        z: -forwardVector.z * volumeImpulse * 0.6
       }, true)
     }
     if (keys.current.ArrowDown) {
       ref.current.applyImpulse({
-        x: forwardVector.x * volumeLevelRef.current * 0.6,
+        x: forwardVector.x * volumeImpulse * 0.6,
         y: 0,
-        z: forwardVector.z * volumeLevelRef.current * 0.6
+        z: forwardVector.z * volumeImpulse * 0.6
       }, true)
     }
     if (keys.current.ArrowLeft)  ref.current.applyTorqueImpulse({
       x: 0,
-      y: volumeLevelRef.current * 0.08,
+      y: volumeTorque * 0.08,
       z: 0
     }, true)
     if (keys.current.ArrowRight) ref.current.applyTorqueImpulse({
       x: 0,
-      y: -volumeLevelRef.current * 0.08,
-      z: 0 },
-    true)
+      y: -volumeTorque * 0.08,
+      z: 0
+    }, true)
   })
 
   const handleCollision = (event: CollisionEnterPayload) => {

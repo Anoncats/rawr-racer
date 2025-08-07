@@ -9,6 +9,9 @@ import SideObstacles from "./SideObstacles"
 import VerticalObstacles from "./VerticalObstacles"
 import { CameraController } from "./CameraController"
 import { RapierRigidBody } from "@react-three/rapier"
+import { useWriteContract } from 'wagmi'
+import storageAbi from "../data/ScoreStorage.json"
+
 
 class ErrorBoundary extends React.Component<
   { children: React.ReactNode; name: string },
@@ -175,6 +178,9 @@ export default function Scene(): JSX.Element {
   const [finalTime, setFinalTime] = useState<number | null>(null)
   const [currentTime, setCurrentTime] = useState(0)
 
+  // web3
+  const { writeContract } = useWriteContract();
+
   // Timer logic
   useEffect(() => {
     if (!gameStarted || gameFinished || !startTime) return
@@ -223,15 +229,23 @@ export default function Scene(): JSX.Element {
       setGameFinished(true)
       setFinalTime(currentTime)
       console.log(`Race finished! Time: ${(currentTime / 1000).toFixed(2)}s`)
+      const intTime = Math.floor(currentTime)
+
+      writeContract({
+        address: '0x9691531f456289fcf1a50130DD45FFfDFFBCC89c',
+        abi: storageAbi,
+        functionName: 'store',
+        args: [intTime],
+      })
       
-      // Reset game after 3 seconds
+      // Reset game after 10 seconds
       setTimeout(() => {
         setGameStarted(false)
         setGameFinished(false)
         setStartTime(null)
         setFinalTime(null)
         setCurrentTime(0)
-      }, 3000)
+      }, 10000)
     }
   }
 
@@ -365,9 +379,10 @@ export default function Scene(): JSX.Element {
               <ErrorBoundary name="SideObstacles">
                 <SideObstacles />
               </ErrorBoundary>
+              {/*}
               <ErrorBoundary name="VerticalObstacles">
                 <VerticalObstacles />
-              </ErrorBoundary>
+              </ErrorBoundary> */}
               <ErrorBoundary name="Car">
                 <Car 
                   ref={carRef} 

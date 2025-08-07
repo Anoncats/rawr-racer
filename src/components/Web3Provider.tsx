@@ -5,15 +5,28 @@ import { WagmiProvider, createConfig, http } from "wagmi";
 import { mainnet } from "wagmi/chains";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ConnectKitProvider, getDefaultConfig } from "connectkit";
+import { type Chain } from 'viem'
+
+export const horizenTestnet = {
+  id : 845320009,
+  name : 'Horizen Testnet (Base Sepolia)',
+  nativeCurrency : { name : 'Ether', symbol : 'ETH', decimals : 18 },
+  rpcUrls : { default : { http : ['https://horizen-rpc-testnet.appchain.base.org'] }, },
+  blockExplorers : { default : { name : 'Horizen', url : 'https://horizen-explorer-testnet.appchain.base.org/' }, },
+} as const satisfies Chain
+
 
 const config = createConfig(
   getDefaultConfig({
     // Your dApps chains
-    chains: [mainnet],
+    chains: [horizenTestnet],
     transports: {
       // RPC URL for each chain
       [mainnet.id]: http(
         `https://eth-mainnet.g.alchemy.com/v2/${process.env.NEXT_PUBLIC_ALCHEMY_ID}`,
+      ),
+      [horizenTestnet.id]: http(
+        `https://horizen-rpc-testnet.appchain.base.org`,
       ),
     },
 
